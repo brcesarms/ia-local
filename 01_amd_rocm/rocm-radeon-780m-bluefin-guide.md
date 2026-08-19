@@ -83,6 +83,7 @@ Instale a versão especial do PyTorch compilada com os recursos para a plataform
 
 ```bash
 ./pyenv/bin/pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/rocm5.7
+./pyenv/bin/pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.0
 ```
 *(Esse processo pode levar alguns minutos devido ao tamanho dos pacotes de aceleração de hardware. Aguarde até a conclusão).*
 
