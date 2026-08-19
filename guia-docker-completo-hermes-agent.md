@@ -1,17 +1,34 @@
-# Guia Completo: Ollama (ROCm), Open WebUI e Hermes Agent no Bluefin Linux
+# GEEKOM A7 MAX - Local AI Setup (Bluefin Linux + Docker ROCm)
 
-Este guia prático foi criado especificamente para configurar um ecossistema completo de Inteligência Artificial local no seu **Mini PC GEEKOM A7 MAX** rodando o sistema **Bluefin Linux**. 
+Este repositório contém o guia definitivo e a configuração automatizada para rodar um ecossistema completo de **Inteligência Artificial local** de forma acelerada por hardware no **Mini PC GEEKOM A7 MAX (Edição AI)**, utilizando o sistema operacional **Bluefin Linux**.
 
-Aqui, nós vamos instalar de forma automatizada via **Docker**:
-1. **Ollama (com ROCm)**: O motor de processamento local, configurado para usar toda a potência da sua placa de vídeo integrada **Radeon 780M** (arquitetura `gfx1103` emulada como `gfx1100`).
-2. **Open WebUI**: A interface visual estilo ChatGPT para você conversar com seus modelos no navegador.
-3. **Hermes Agent (Nous Research)**: O poderoso agente autônomo que aprende novas habilidades, gerencia tarefas e pode ser conectado ao Telegram, Discord, Slack ou usado diretamente no terminal.
+A arquitetura utiliza o **Docker Compose** para orquestrar e integrar as imagens oficiais prontas, garantindo uma instalação limpa, sem a necessidade de compilar pacotes ou gerenciar dependências complexas do sistema operacional.
 
 ---
 
-## 🛠️ Requisitos Iniciais
+## 💻 Especificações do Setup Alvo
+Este guia foi otimizado e testado para a seguinte configuração:
+* **Equipamento:** Mini PC GEEKOM A7 MAX (Edição AI)
+* **Processador:** AMD Ryzen 9 7940HS (com IA Ryzen AI NPU dedicada)
+* **Placa de Vídeo:** AMD Radeon 780M integrada (arquitetura `gfx1103`)
+* **Memória RAM:** 64 GB DDR5 (perfeita para alocação de vídeo compartilhada massiva)
+* **Sistema Operacional:** Linux Bluefin (Universal Blue) — um sistema atômico e imutável de próxima geração.
 
-Como você possui **64 GB de RAM**, a sua placa integrada Radeon 780M pode pegar emprestado dinamicamente até **32 GB de memória gráfica (VRAM)**. Para garantir que o sistema não limite essa alocação, abra o terminal do seu Bluefin e execute o comando abaixo (isso configurará o driver AMD de forma perfeita para IA):
+---
+
+## 📦 Componentes do Ecossistema
+A receita automatizada do Docker Compose inicia três serviços principais integrados:
+1. **Ollama (com aceleração AMD ROCm):** O motor de inferência local, configurado para emular a iGPU Radeon 780M (`gfx1103`) como uma dGPU RDNA3 suportada (`gfx1100`) usando a variável de ambiente `HSA_OVERRIDE_GFX_VERSION=11.0.0`.
+2. **Open WebUI:** Uma interface de chat rica e bonita integrada ao navegador, com visual e recursos similares ao ChatGPT, permitindo baixar e gerenciar modelos de forma visual.
+3. **Hermes Agent (Nous Research):** Um agente autônomo de inteligência artificial de última geração, capaz de interagir pelo terminal ou integrar-se a canais de mensagem (como Telegram, Discord ou Slack), mantendo memórias de longo prazo e aprendendo novas habilidades de forma persistente.
+
+---
+
+## 🛠️ Requisitos Iniciais de Sistema
+
+Como o GEEKOM A7 MAX possui uma BIOS original com opções de alocação de vídeo de fábrica travadas, o sistema operacional gerencia a memória de forma dinâmica através do driver open-source da AMD. 
+
+Com os seus **64 GB de RAM**, a placa de vídeo Radeon 780M integrada é capaz de emprestar dinamicamente **até 32 GB de memória gráfica** sob demanda. Para garantir que o motor do Docker tenha permissão total de acesso gráfico direto à aceleração por hardware, certifique-se de que o Docker está ativado para iniciar junto com o sistema host:
 
 ```bash
 sudo systemctl enable docker
@@ -19,26 +36,21 @@ sudo systemctl enable docker
 
 ---
 
-## 🚀 Passo 1: Criando a Pasta do Projeto
+## 🚀 Passo a Passo de Instalação
 
-Abra o seu terminal no Bluefin Linux e crie uma pasta organizada para hospedar toda a nossa estrutura do Docker:
+### Passo 1: Criar a pasta do projeto
+Abra o terminal (**Ptyxis** ou **Terminal**) no seu Bluefin e crie uma pasta organizada para hospedar os arquivos de configuração:
 
 ```bash
 mkdir -p ~/ia-local && cd ~/ia-local
 ```
 
----
-
-## 📦 Passo 2: Criando o Arquivo de Configuração Único (`docker-compose.yml`)
-
-O Docker Compose permite subir múltiplos serviços com apenas uma "receita". Vamos criar esse arquivo dentro da pasta que acabamos de criar.
-
-1. Digite no terminal para abrir o editor:
+### Passo 2: Criar o arquivo de configuração única (`docker-compose.yml`)
+1. No terminal, abra o editor de texto integrado rodando:
    ```bash
    nano docker-compose.yml
    ```
-
-2. Copie todo o código abaixo, cole dentro do editor de texto e salve pressionando **Ctrl + O**, depois **Enter** para confirmar, e saia com **Ctrl + X**:
+2. Copie todo o código do bloco abaixo e cole no terminal:
 
 ```yaml
 version: '3.8'
@@ -57,7 +69,7 @@ services:
       - "/dev/kfd:/dev/kfd"
       - "/dev/dri:/dev/dri"
     environment:
-      - HSA_OVERRIDE_GFX_VERSION=11.0.0 # Engana o ROCm para ativar a Radeon 780M
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0 # Override crucial para emular a Radeon 780M
     group_add:
       - video
 
@@ -94,59 +106,63 @@ volumes:
   open_webui_data:
 ```
 
+3. Salve e saia do editor:
+   * Pressione **Ctrl + O** e aperte **Enter** para confirmar a gravação.
+   * Pressione **Ctrl + X** para fechar o editor.
+
 ---
 
-## 🧙‍♂️ Passo 3: Rodar o Assistente de Configuração do Hermes Agent
+### Passo 3: Configurar o Hermes Agent (Primeira Execução)
+O **Hermes Agent** exige um assistente interativo inicial para carregar suas memórias e chaves de API preferidas.
 
-O **Hermes Agent** é um agente de inteligência autônoma. Na primeira vez que você for usá-lo, ele precisa rodar um assistente interativo para você definir as suas preferências (como chaves de API, se deseja conectá-lo ao Telegram, Discord, etc.).
-
-1. Antes de ligar todo o sistema, crie a pasta onde o Hermes guardará suas memórias e chaves na sua máquina host:
+1. Crie o diretório de dados persistentes na sua máquina host:
    ```bash
    mkdir -p ~/.hermes
    ```
-
-2. Execute o assistente de configuração oficial do Hermes rodando este comando no terminal:
+2. Execute o assistente de configuração oficial em modo interativo rodando:
    ```bash
    docker run -it --rm -v ~/.hermes:/opt/data nousresearch/hermes-agent setup
    ```
-   * O assistente fará perguntas simples na tela. Ele perguntará qual modelo você quer usar (você pode selecionar o Ollama local ou provedores externos como OpenRouter, Anthropic, etc.), suas chaves e se você deseja ativar canais de mensagem como o Telegram.
-   * Assim que você concluir o assistente, ele salvará de forma segura as suas configurações na sua pasta local `~/.hermes/.env` e fechará o assistente automaticamente.
+3. Responda às perguntas simples do assistente na tela (selecione o provedor do Ollama local ou serviços em nuvem como OpenRouter, adicione suas chaves de API e defina se deseja habilitar canais adicionais de comunicação como bots de Telegram). Assim que concluir, o assistente salvará as configurações de forma segura em `~/.hermes/.env` e fechará o container temporário.
 
 ---
 
-## ⚡ Passo 4: Subir Todo o Sistema com 1 Comando
-
-Com as receitas prontas e as configurações do Hermes salvas, basta rodar este comando para subir o Ollama, o Open WebUI e o Hermes Agent de uma única vez em segundo plano:
+### Passo 4: Subir todo o Ecossistema
+Com o arquivo de receita salvo e a configuração do seu agente finalizada, suba todo o stack de containers em segundo plano rodando:
 
 ```bash
 docker compose up -d
 ```
 
-O Docker fará o download de todas as imagens oficiais prontas direto do Docker Hub. Isso pode levar alguns minutos dependendo da sua velocidade de internet. Assim que terminar, você verá mensagens de "Started" na tela.
+O Docker fará o download e a inicialização de todas as imagens oficiais necessárias automaticamente do Docker Hub. Isso pode levar alguns minutos na primeira execução.
 
 ---
 
-## 🎮 Como Usar o seu Novo Setup de IA
+## 🎮 Como Usar o seu Setup de IA
 
-### 1. Interface de Chat (Open WebUI)
-Abra o seu navegador de internet e acesse:
-👉 **`http://localhost:3000`**
-
-Crie o seu primeiro usuário local (seus dados ficam salvos de forma 100% privada no seu próprio mini PC). Na aba de configurações, você poderá baixar e gerenciar qualquer modelo do Ollama de forma visual!
+### 1. Interface Web do Chat (Open WebUI)
+* Abra seu navegador de internet e acesse: **`http://localhost:3000`**
+* Crie o seu primeiro cadastro de usuário administrador local (todas as conversas ficam salvas localmente em seu próprio hardware).
+* Na aba de configurações, faça o download do modelo **Hermes 3** (por exemplo, `hermes3:8b`) digitando o identificador do modelo de forma visual na aba de gerenciamento do Ollama.
 
 ### 2. Conversar ou Controlar o Hermes Agent
-O Hermes Agent estará rodando silenciosamente na porta `8642` e utilizando as configurações que você definiu no assistente (como o seu bot do Telegram ou Discord). 
+O Hermes Agent estará rodando de forma persistente em segundo plano na porta `8642`. Para interagir com ele de forma autônoma diretamente no terminal do seu computador, execute:
 
-Se você quiser abrir o terminal interativo do Hermes para dar ordens diretas para ele rodar na sua máquina, basta executar o comando abaixo:
 ```bash
 docker exec -it hermes-agent hermes
 ```
 
 ---
 
-## 🔄 Como Atualizar Tudo no Futuro?
+## ⚠️ Comportamento de "Warm-up" (Aviso para Iniciantes)
+Ao rodar tarefas de Inteligência Artificial pesadas pela primeira vez usando a placa gráfica integrada do mini PC, **a tela de exibição do computador pode piscar rapidamente ou ficar escura por cerca de um segundo**. 
 
-Sempre que a AMD, a Nous Research ou o time do Open WebUI lançarem atualizações, você pode atualizar todos os seus aplicativos do Docker de uma vez com estes três comandos simples dentro da pasta `~/ia-local`:
+Isso é um comportamento conhecido de "warm-up" (aquecimento e reinicialização de segurança da GPU) reportado pela comunidade. Se o programa fechar ou apresentar uma falha na primeira tentativa, apenas aguarde o reset de segurança da GPU e execute-o novamente. A partir da segunda execução em diante, o processamento ocorre com excelente estabilidade e rapidez.
+
+---
+
+## 🔄 Manutenção e Atualização de Aplicativos
+Mantenha todo o seu ecossistema de ferramentas atualizado com as últimas versões disponibilizadas pela AMD, Open WebUI e Nous Research sem perder nenhuma conversa ou memória salva:
 
 ```bash
 cd ~/ia-local
@@ -154,4 +170,5 @@ docker compose pull
 docker compose up -d
 ```
 
-Suas conversas, preferências e memórias de agente nunca serão perdidas ao atualizar, pois estão protegidas em volumes persistentes do seu computador!
+---
+*Criado com base nos relatórios de comunidade e documentação técnica oficial de suporte do Project Bluefin e do AMD ROCm.*
