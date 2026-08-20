@@ -1,5 +1,10 @@
 ---
 title: "Guia Passo a Passo: Obsidian + LM Studio (LLM Local)"
+tags:
+  - obsidian
+  - lm-studio
+  - ia-local
+source: https://shikiyura.com/2026/03/obsidian-lm-studio-integration/
 ---
 
 
